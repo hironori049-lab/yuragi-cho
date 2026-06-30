@@ -179,6 +179,17 @@
       </div>
 
       <div class="row"><button class="btn save" id="save">保存する</button><button class="btn" id="clear">消去</button></div>
+
+      <div class="subcard">
+        <div class="section-title" style="margin-top:0"><h2>バックアップ</h2><div class="t">JSONで保存/復元</div></div>
+        <div class="row" style="margin-top:0">
+          <button class="btn" id="exportBackup">書き出し</button>
+          <button class="btn" id="importBackup">読み込み</button>
+        </div>
+        <input type="file" id="backupFile" accept=".json,application/json" hidden />
+        <div class="tiny" id="backupStatus">保存先はこのブラウザ内。必要ならJSONで控えを作れます。</div>
+      </div>
+
       <div class="tiny">保存先はこのブラウザ内。開き直しても残る。</div>
     </div>
   </section>
@@ -230,7 +241,7 @@
   const today = new Date();
 
   const STUDY_OPTIONS = ['数学α', '数学β', '英語Ｃ', '英語Ｅ', '現代国語', '言語文化', '生物', '物理', '地理', '歴史', '情報'];
-  const ENT_OPTIONS = ['漫画', '動画', 'ゲーム', '音楽', '映画', 'SNS', '読書', '制作'];
+  const ENT_OPTIONS = ['漫画', '動画', 'ゲーム', '音楽', '映画', 'SNS', '読書', '制作', 'スポーツ'];
 
   const state = {
     month: new Date(today.getFullYear(), today.getMonth(), 1),
@@ -257,6 +268,7 @@
     stuAddMin:$('stuAddMin'), entAddMin:$('entAddMin'), stuAdd:$('stuAdd'), entAdd:$('entAdd'),
     studyTags:$('studyTags'), entTags:$('entTags'), moods:$('moods'), note:$('note'), sumTime:$('sumTime'), sumMeta:$('sumMeta'),
     save:$('save'), clear:$('clear'),
+    exportBackup:$('exportBackup'), importBackup:$('importBackup'), backupFile:$('backupFile'), backupStatus:$('backupStatus'),
     r7:$('r7'), r30:$('r30'), rAll:$('rAll'), ringEnt:$('ringEnt'), ringStu:$('ringStu'),
     legEnt:$('legEnt'), legStu:$('legStu'), legNone:$('legNone'), analysis:$('analysis'), forecast:$('forecast'), analysisMemo:$('analysisMemo'), analysisList:$('analysisList'),
     tabs:[...document.querySelectorAll('.tabbar button')], secs:[...document.querySelectorAll('.section')]
@@ -268,6 +280,9 @@
   function iso(d){ return d.toISOString().slice(0,10); }
   function load(){ try{ return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } }
   function save(){ localStorage.setItem(key, JSON.stringify(state.records)); }
+  function setBackupStatus(message){
+    if(els.backupStatus) els.backupStatus.textContent = message;
+  }
   function fmt(sec){ sec = Math.max(0, Math.floor(sec)); return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0'); }
   function toggleTag(list, tag, limit = 3){
     const i = list.indexOf(tag);
@@ -504,6 +519,50 @@
     $('note').value = ''; save(); renderAll();
   }
 
+  function exportBackup(){
+    const payload = {
+      app: 'ゆらぎ帳',
+      version: 'v1.1-backup',
+      exportedAt: new Date().toISOString(),
+      records: state.records
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yuragi_backup_${iso(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setBackupStatus('JSONを書き出しました。');
+  }
+
+  async function importBackupFile(file){
+    if(!file) return;
+    try{
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const imported = data && typeof data === 'object' && data.records && typeof data.records === 'object'
+        ? data.records
+        : (data && typeof data === 'object' ? data : null);
+      if(!imported || Array.isArray(imported)) throw new Error('バックアップの形式が違います。');
+      if(!confirm('今の記録をバックアップの内容で置き換えますか？')) return;
+      state.records = imported;
+      migrateRecords(state.records);
+      save();
+      openDate(state.selected in state.records ? state.selected : iso(new Date()));
+      renderAll();
+      setBackupStatus('JSONを読み込みました。');
+    }catch(err){
+      console.error(err);
+      alert('バックアップの読み込みに失敗しました。JSONファイルを確認してください。');
+      setBackupStatus('読み込みに失敗しました。');
+    }finally{
+      if(els.backupFile) els.backupFile.value = '';
+    }
+  }
+
   function renderCal(){
     const y = state.month.getFullYear(), m = state.month.getMonth();
     const first = new Date(y, m, 1), start = first.getDay(), days = new Date(y, m + 1, 0).getDate();
@@ -647,11 +706,15 @@
   $('stuAdd').onclick = () => addManual('study', 'stuAddMin');
   $('entAdd').onclick = () => addManual('ent', 'entAddMin');
   $('save').onclick = saveCurrent; $('clear').onclick = clearCurrent;
+  $('exportBackup').onclick = exportBackup;
+  $('importBackup').onclick = () => $('backupFile').click();
+  $('backupFile').onchange = () => importBackupFile($('backupFile').files && $('backupFile').files[0]);
   $('r7').onclick = () => { state.range = 7; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.r7.classList.add('active'); renderBalance(); };
   $('r30').onclick = () => { state.range = 30; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.r30.classList.add('active'); renderBalance(); };
   $('rAll').onclick = () => { state.range = 'all'; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.rAll.classList.add('active'); renderBalance(); };
 
   openDate(state.selected); renderAll();
+  setBackupStatus('保存先はこのブラウザ内です。必要ならJSONを書き出せます。');
   setInterval(() => { if(state.timer.active) syncTimer(); }, 1000);
 
   if ('serviceWorker' in navigator) {
