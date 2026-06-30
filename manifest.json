@@ -1,25 +1,21 @@
 {
   "name": "ゆらぎ帳",
   "short_name": "ゆらぎ帳",
-  "id": "./",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f2ea",
+  "background_color": "#ffffff",
   "theme_color": "#4CAF50",
-  "description": "勉強とエンタメの時間を記録して、ゆらぎを観測するアプリ",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
   ]
 }

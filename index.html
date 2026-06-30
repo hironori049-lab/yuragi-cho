@@ -91,6 +91,7 @@
     <div>
       <h1>ゆらぎ帳</h1>
       <div class="sub">エンタメ・勉強・気分・内容をまとめて観測する</div>
+      <div class="tiny" style="margin-top:2px">v1.2 / PWA更新版</div>
     </div>
     <div class="chip" id="todayChip"></div>
   </div>
@@ -719,7 +720,9 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js?v=6').then((reg) => {
+    if (reg && reg.update) reg.update().catch(() => {});
+  }).catch(() => {});
     });
   }
 
