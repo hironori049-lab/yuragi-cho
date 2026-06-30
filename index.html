@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#4CAF50" />
+  <link rel="manifest" href="manifest.json" />
+  <title>ゆらぎ帳</title>
+  <style>
+    :root{
+      --bg:#f6f2ea; --panel:#fff; --ink:#202020; --muted:#6f6a62;
+      --line:#e7dfd3; --ent:#ef7b69; --stu:#5d87ff; --mid:#8a77ff;
+      --shadow:0 12px 30px rgba(40,28,10,.08); --r:20px;
+    }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(#fff,var(--bg));color:var(--ink)}
+    .app{max-width:460px;margin:0 auto;min-height:100vh;padding:16px 14px 92px}
+    .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+    h1{margin:0;font-size:24px} .sub{margin-top:4px;color:var(--muted);font-size:12px;line-height:1.5}
+    .chip{border:1px solid var(--line);background:rgba(255,255,255,.8);border-radius:999px;padding:8px 12px;font-size:12px;white-space:nowrap}
+    .hero,.card{background:rgba(255,255,255,.92);border:1px solid rgba(231,223,211,.9);box-shadow:var(--shadow);border-radius:var(--r)}
+    .hero{padding:14px;margin-bottom:14px}
+    .meter-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
+    .meter{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--ent) 0%, #f4b39d 35%, #f5efe6 50%, #a7bafc 65%, var(--stu) 100%);position:relative;overflow:hidden;border:1px solid #eee3d4}
+    .needle{position:absolute;top:-4px;left:50%;width:2px;height:20px;background:#222;transform:translateX(-50%);box-shadow:0 0 0 3px rgba(255,255,255,.8)}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px}
+    .k{font-size:11px;color:var(--muted)} .v{font-size:18px;font-weight:800;margin-top:4px}
+    .tabs{display:none}.section{display:none}.section.active{display:block}
+    .section-title{display:flex;justify-content:space-between;align-items:end;margin:2px 2px 10px}
+    .section-title h2{margin:0;font-size:16px} .section-title .t{font-size:12px;color:var(--muted)}
+    .card{padding:14px;margin-bottom:14px}
+    .navrow{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .btn,.seg button,.tabbar button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:10px 12px;font:inherit}
+    .btn:active,.seg button:active,.tabbar button:active{transform:translateY(1px)}
+    .seg{display:flex;gap:8px;margin-bottom:12px}.seg button{flex:1;background:#f8f5ef}.seg button.active{background:#fff;box-shadow:inset 0 0 0 1px rgba(93,135,255,.18)}
+    .month{font-weight:800}
+    .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .dow{font-size:11px;color:var(--muted);text-align:center;padding:3px 0}
+    .day{min-height:52px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:6px;display:flex;flex-direction:column;justify-content:space-between}
+    .day.empty{background:transparent;border:1px dashed rgba(0,0,0,.05)}
+    .date{font-size:12px}
+    .dot{height:10px;border-radius:999px;background:#f1ede6;display:flex;overflow:hidden}
+    .dot.ent .l{background:var(--ent);width:100%}.dot.ent .r{background:#f8d7d0;width:0%}
+    .dot.stu .l{background:#dbe5ff;width:0%}.dot.stu .r{background:var(--stu);width:100%}
+    .dot.mid .l{background:var(--ent);width:50%}.dot.mid .r{background:var(--stu);width:50%}
+    .day.today{outline:2px solid rgba(93,135,255,.35)}
+    .day.sel{outline:2px solid rgba(239,123,105,.45)}
+    .hint{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.6}
+    .choice{width:100%;text-align:left;padding:14px;border-radius:18px;border:1px solid var(--line);background:#fff;font:inherit;margin-bottom:10px}
+    .choice.active.ent{border-color:rgba(239,123,105,.45)} .choice.active.mid{border-color:rgba(138,119,255,.45)} .choice.active.stu{border-color:rgba(93,135,255,.45)}
+    .choice small{display:block;color:var(--muted);margin-top:4px}
+    .subcard{background:#faf8f4;border:1px solid var(--line);border-radius:18px;padding:12px;margin:12px 0}
+    .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .tp{border:1px solid var(--line);background:#fff;border-radius:18px;padding:12px}
+    .tn{font-size:12px;color:var(--muted)} .tt{font-size:28px;font-weight:900;line-height:1;margin:8px 0 10px}
+    .ta{display:flex;gap:8px}.ta button{flex:1}
+    .manual{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .manual input{width:92px;border:1px solid var(--line);border-radius:12px;padding:9px 10px;font:inherit;background:#fff;text-align:center}
+    .manual .btn{padding:9px 10px;flex:1}
+    .tags,.moods{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+    .tag,.mood{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;font-size:12px}
+    .tag.active.ent,.mood.active{background:#fff3f0;border-color:rgba(239,123,105,.45)}
+    .tag.active.stu{background:#eef3ff;border-color:rgba(93,135,255,.45)}
+    textarea{width:100%;min-height:88px;border:1px solid var(--line);border-radius:18px;padding:12px;font:inherit;background:#fff}
+    .row{display:flex;gap:10px;margin-top:12px}.row .btn{flex:1}
+    .save{background:#111;color:#fff;border-color:#111;font-weight:700}
+    .sum{display:grid;gap:8px;margin-top:12px}.pill{border:1px solid var(--line);background:#fbfaf8;border-radius:16px;padding:11px 12px;font-size:13px;color:var(--muted)}
+    .legend{display:grid;gap:8px}.li{display:flex;justify-content:space-between;align-items:center;font-size:13px}.left{display:flex;align-items:center;gap:8px}.sw{width:12px;height:12px;border-radius:999px}.entc{background:var(--ent)}.stuc{background:var(--stu)}.nonec{background:#d8d1c6}
+    .forecast{display:grid;gap:8px}.fitem{border:1px solid var(--line);background:#fff;border-radius:16px;padding:12px;font-size:13px;line-height:1.5}
+    .tabbar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border-top:1px solid rgba(231,223,211,.9)}
+    .tabsrow{max-width:460px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .tabbar button.active{background:#111;color:#fff;border-color:#111}
+    .tiny{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+  
+    .tag-group{border:1px solid var(--line);background:#fff;border-radius:18px;padding:12px;margin:12px 0}
+    .tag-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .tag-head h3{margin:0;font-size:14px}
+    .tag-head .t{font-size:12px;color:var(--muted)}
+    .tag-list{display:flex;flex-wrap:wrap;gap:8px}
+    .tag-list .tag{cursor:pointer}
+    .tag-list .tag.active{box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+    .analysis-grid{display:grid;gap:10px}
+    .analysis-box,.analysis-item{border:1px solid var(--line);background:#fff;border-radius:18px;padding:12px;font-size:13px;line-height:1.6}
+    .analysis-item strong{display:block;margin-bottom:4px}
+
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1>ゆらぎ帳</h1>
+      <div class="sub">エンタメ・勉強・気分・内容をまとめて観測する</div>
+    </div>
+    <div class="chip" id="todayChip"></div>
+  </div>
+
+  <div class="hero">
+    <div class="meter-label">
+      <div><b>今週のバランス</b><div class="sub" id="balText">—</div></div>
+      <div class="chip" id="rangeChip">7日間</div>
+    </div>
+    <div class="meter"><div class="needle" id="needle"></div></div>
+    <div class="stats">
+      <div class="stat"><div class="k">エンタメ</div><div class="v" id="entPct">0%</div><div class="k" id="entCnt">0件</div></div>
+      <div class="stat"><div class="k">均衡</div><div class="v" id="midPct">0%</div><div class="k" id="midCnt">0件</div></div>
+      <div class="stat"><div class="k">勉強</div><div class="v" id="stuPct">0%</div><div class="k" id="stuCnt">0件</div></div>
+    </div>
+  </div>
+
+  <section id="calSec" class="section active">
+    <div class="section-title"><h2>カレンダー</h2><div class="t">色で寄りを見る</div></div>
+    <div class="card">
+      <div class="navrow">
+        <button class="btn" id="prevM">←</button>
+        <div class="month" id="monthLabel"></div>
+        <button class="btn" id="nextM">→</button>
+      </div>
+      <div class="cal" id="calendar"></div>
+      <div class="hint" id="calHint">—</div>
+    </div>
+  </section>
+
+  <section id="recSec" class="section">
+    <div class="section-title"><h2>記録</h2><div class="t" id="recDate">—</div></div>
+    <div class="card">
+      <div class="seg">
+        <button id="mEnt">エンタメ寄り</button>
+        <button id="mMid" class="active">半々</button>
+        <button id="mStu">勉強寄り</button>
+      </div>
+
+      <button class="choice" id="cEnt">エンタメ多め<small>動画・漫画・ゲームなど</small></button>
+      <button class="choice active mid" id="cMid">だいたい均衡<small>偏りすぎていない</small></button>
+      <button class="choice" id="cStu">勉強多め<small>学習・調べもの・制作</small></button>
+
+      <div class="subcard">
+        <div class="section-title" style="margin-top:0"><h2>タイマー</h2><div class="t">開始→停止</div></div>
+        <div class="tgrid">
+          <div class="tp" id="tpStu">
+            <div class="tn">勉強</div>
+            <div class="tt" id="stuTime">00:00</div>
+            <div class="ta"><button class="btn" id="stuStart">開始</button><button class="btn" id="stuStop">停止</button></div>
+            <div class="manual"><input type="number" id="stuAddMin" min="1" step="1" value="15" inputmode="numeric" aria-label="勉強の追加分数"><button class="btn" id="stuAdd">＋追加</button></div>
+          </div>
+          <div class="tp" id="tpEnt">
+            <div class="tn">エンタメ</div>
+            <div class="tt" id="entTime">00:00</div>
+            <div class="ta"><button class="btn" id="entStart">開始</button><button class="btn" id="entStop">停止</button></div>
+            <div class="manual"><input type="number" id="entAddMin" min="1" step="1" value="15" inputmode="numeric" aria-label="エンタメの追加分数"><button class="btn" id="entAdd">＋追加</button></div>
+          </div>
+        </div>
+        <div class="tiny">停止した時間に加えて、下の「＋追加」でもあとから時間を足せます。</div>
+      </div>
+
+      <div class="tag-group">
+        <div class="tag-head"><h3>勉強タグ</h3><div class="t">複数選択可 / 最大3つ</div></div>
+        <div class="tag-list" id="studyTags">
+          <button class="tag">数学α</button><button class="tag">数学β</button><button class="tag">英語Ｃ</button><button class="tag">英語Ｅ</button><button class="tag">現代国語</button><button class="tag">言語文化</button><button class="tag">生物</button><button class="tag">物理</button><button class="tag">地理</button><button class="tag">歴史</button><button class="tag">情報</button>
+        </div>
+      </div>
+
+      <div class="tag-group">
+        <div class="tag-head"><h3>エンタメ内容</h3><div class="t">複数選択可 / 最大3つ</div></div>
+        <div class="tag-list" id="entTags">
+          <button class="tag">漫画</button><button class="tag">動画</button><button class="tag">ゲーム</button><button class="tag">音楽</button><button class="tag">映画</button><button class="tag">SNS</button><button class="tag">読書</button><button class="tag">制作</button>
+        </div>
+      </div>
+
+      <div class="subcard">
+        <div class="section-title" style="margin-top:0"><h2>気分</h2><div class="t">3択</div></div>
+        <div class="moods" id="moods"><button class="mood active">疲れた</button><button class="mood">普通</button><button class="mood">乗ってる</button></div>
+      </div>
+
+      <textarea id="note" placeholder="今日の一言（任意）"></textarea>
+      <div class="sum">
+        <div class="pill" id="sumTime">勉強 00:00 / エンタメ 00:00</div>
+        <div class="pill" id="sumMeta">勉強タグ: — / エンタメタグ: — / 気分: 疲れた</div>
+      </div>
+
+      <div class="row"><button class="btn save" id="save">保存する</button><button class="btn" id="clear">消去</button></div>
+      <div class="tiny">保存先はこのブラウザ内。開き直しても残る。</div>
+    </div>
+  </section>
+
+  <section id="balSec" class="section">
+    <div class="section-title"><h2>バランス</h2><div class="t" id="rangeTitle">7日</div></div>
+    <div class="card">
+      <div class="seg"><button id="r7" class="active">7日</button><button id="r30">30日</button><button id="rAll">全体</button></div>
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:center">
+        <svg viewBox="0 0 120 120" width="110" height="110" aria-label="donut">
+          <circle cx="60" cy="60" r="42" stroke="#eee7dd" stroke-width="18" fill="none"></circle>
+          <circle id="ringEnt" cx="60" cy="60" r="42" stroke="var(--ent)" stroke-width="18" fill="none" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+          <circle id="ringStu" cx="60" cy="60" r="42" stroke="var(--stu)" stroke-width="18" fill="none" stroke-linecap="round" transform="rotate(-90 60 60)"></circle>
+        </svg>
+        <div class="legend">
+          <div class="li"><span class="left"><span class="sw entc"></span>エンタメ</span><strong id="legEnt">0%</strong></div>
+          <div class="li"><span class="left"><span class="sw stuc"></span>勉強</span><strong id="legStu">0%</strong></div>
+          <div class="li"><span class="left"><span class="sw nonec"></span>未記録</span><strong id="legNone">0%</strong></div>
+        </div>
+      </div>
+      <div class="hint" id="analysis">—</div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0"><h2>分析メモ</h2><div class="t">傾向を読む</div></div>
+      <div class="analysis-grid">
+        <div class="analysis-box" id="analysisMemo">—</div>
+        <div class="analysis-list" id="analysisList"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0"><h2>ゆらぎ予報</h2><div class="t">説教しない</div></div>
+      <div class="forecast" id="forecast"></div>
+    </div>
+  </section>
+</div>
+
+<div class="tabbar">
+  <div class="tabsrow">
+    <button class="active" data-tab="calSec">カレンダー</button>
+    <button data-tab="recSec">記録</button>
+    <button data-tab="balSec">バランス</button>
+  </div>
+</div>
+
+
+<script>
+(() => {
+  const key = 'yuragi-v3';
+  const today = new Date();
+
+  const STUDY_OPTIONS = ['数学α', '数学β', '英語Ｃ', '英語Ｅ', '現代国語', '言語文化', '生物', '物理', '地理', '歴史', '情報'];
+  const ENT_OPTIONS = ['漫画', '動画', 'ゲーム', '音楽', '映画', 'SNS', '読書', '制作'];
+
+  const state = {
+    month: new Date(today.getFullYear(), today.getMonth(), 1),
+    selected: iso(today),
+    range: 7,
+    mode: 'mid',          // 主観
+    mood: '疲れた',
+    studyTags: [],
+    entTags: [],
+    records: load(),
+    timer: { active: null, started: null, study: 0, ent: 0 }
+  };
+
+  migrateRecords(state.records);
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    todayChip:$('todayChip'), balText:$('balText'), rangeChip:$('rangeChip'), needle:$('needle'),
+    entPct:$('entPct'), midPct:$('midPct'), stuPct:$('stuPct'), entCnt:$('entCnt'), midCnt:$('midCnt'), stuCnt:$('stuCnt'),
+    calendar:$('calendar'), monthLabel:$('monthLabel'), calHint:$('calHint'),
+    recDate:$('recDate'), mEnt:$('mEnt'), mMid:$('mMid'), mStu:$('mStu'), cEnt:$('cEnt'), cMid:$('cMid'), cStu:$('cStu'),
+    tpStu:$('tpStu'), tpEnt:$('tpEnt'), stuTime:$('stuTime'), entTime:$('entTime'),
+    stuStart:$('stuStart'), stuStop:$('stuStop'), entStart:$('entStart'), entStop:$('entStop'),
+    stuAddMin:$('stuAddMin'), entAddMin:$('entAddMin'), stuAdd:$('stuAdd'), entAdd:$('entAdd'),
+    studyTags:$('studyTags'), entTags:$('entTags'), moods:$('moods'), note:$('note'), sumTime:$('sumTime'), sumMeta:$('sumMeta'),
+    save:$('save'), clear:$('clear'),
+    r7:$('r7'), r30:$('r30'), rAll:$('rAll'), ringEnt:$('ringEnt'), ringStu:$('ringStu'),
+    legEnt:$('legEnt'), legStu:$('legStu'), legNone:$('legNone'), analysis:$('analysis'), forecast:$('forecast'), analysisMemo:$('analysisMemo'), analysisList:$('analysisList'),
+    tabs:[...document.querySelectorAll('.tabbar button')], secs:[...document.querySelectorAll('.section')]
+  };
+
+  const DOW = ['日','月','火','水','木','金','土'];
+  const MONTH = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+  function iso(d){ return d.toISOString().slice(0,10); }
+  function load(){ try{ return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } }
+  function save(){ localStorage.setItem(key, JSON.stringify(state.records)); }
+  function fmt(sec){ sec = Math.max(0, Math.floor(sec)); return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0'); }
+  function toggleTag(list, tag, limit = 3){
+    const i = list.indexOf(tag);
+    if(i >= 0) return list.filter(x => x !== tag);
+    if(list.length >= limit) return list;
+    return [...list, tag];
+  }
+  function showTags(list){ return list.length ? list.join(' / ') : '—'; }
+  function balanceModeFromSeconds(studySec, entSec, fallback = 'mid'){
+    const study = Math.max(0, studySec || 0);
+    const ent = Math.max(0, entSec || 0);
+    const total = study + ent;
+    if(!total) return fallback;
+    const ratio = study / total;
+    if(ratio >= 0.62) return 'stu';
+    if(ratio <= 0.38) return 'ent';
+    return 'mid';
+  }
+  function scoreToLabel(mode){ return mode === 'ent' ? 'エンタメ寄り' : mode === 'stu' ? '勉強寄り' : '均衡'; }
+
+  function migrateRecords(records){
+    Object.entries(records).forEach(([k, r]) => {
+      if(!r || typeof r !== 'object') return;
+      if(!Array.isArray(r.studyTags)) {
+        r.studyTags = Array.isArray(r.studyTags) ? r.studyTags : [];
+      }
+      if(!Array.isArray(r.entTags)) {
+        if(typeof r.activity === 'string' && r.activity) {
+          r.entTags = [r.activity];
+        } else if(Array.isArray(r.activity)) {
+          r.entTags = r.activity.slice();
+        } else {
+          r.entTags = [];
+        }
+      }
+      if(typeof r.mode !== 'string') r.mode = 'mid';
+      if(typeof r.mood !== 'string') r.mood = '疲れた';
+      if(typeof r.note !== 'string') r.note = '';
+      if(typeof r.studySeconds !== 'number') r.studySeconds = 0;
+      if(typeof r.entSeconds !== 'number') r.entSeconds = 0;
+      if(!r.balanceMode) r.balanceMode = balanceModeFromSeconds(r.studySeconds, r.entSeconds, r.mode);
+      records[k] = r;
+    });
+    save();
+  }
+
+  function rangeKeys(r){
+    if(r === 'all') return Object.keys(state.records).sort();
+    const out = [];
+    for(let i = r - 1; i >= 0; i--){
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      out.push(iso(d));
+    }
+    return out;
+  }
+
+  function counts(keys){
+    const c = { ent:0, mid:0, stu:0, none:0, total: keys.length };
+    keys.forEach(k => { const r = state.records[k]; if(!r) c.none++; else c[r.balanceMode || r.mode || 'mid']++; });
+    return c;
+  }
+
+  function minutesFrom(rec){
+    return {
+      study: Math.round((rec?.studySeconds || 0) / 60),
+      ent: Math.round((rec?.entSeconds || 0) / 60),
+      total: Math.round(((rec?.studySeconds || 0) + (rec?.entSeconds || 0)) / 60)
+    };
+  }
+
+  function dayKeysSorted(){ return Object.keys(state.records).sort(); }
+
+  function buildAnalysis(keys){
+    const recs = keys.map(k => ({ date:k, ...state.records[k] })).filter(r => r && (r.studySeconds || r.entSeconds || r.note || (r.studyTags?.length) || (r.entTags?.length)));
+    const studyTagCounts = {};
+    const entTagCounts = {};
+    const moodCounts = {};
+    const transitions = {};
+    let withNotes = 0;
+
+    recs.forEach((r, idx) => {
+      const m = minutesFrom(r);
+      if(r.note && r.note.trim()) withNotes++;
+      (r.studyTags || []).forEach(t => {
+        studyTagCounts[t] = studyTagCounts[t] || { n:0, study:0, ent:0 };
+        studyTagCounts[t].n += 1;
+        studyTagCounts[t].study += m.study;
+        studyTagCounts[t].ent += m.ent;
+      });
+      (r.entTags || []).forEach(t => {
+        entTagCounts[t] = entTagCounts[t] || { n:0, study:0, ent:0 };
+        entTagCounts[t].n += 1;
+        entTagCounts[t].study += m.study;
+        entTagCounts[t].ent += m.ent;
+      });
+      const mood = r.mood || '—';
+      moodCounts[mood] = moodCounts[mood] || { n:0, study:0, ent:0 };
+      moodCounts[mood].n += 1;
+      moodCounts[mood].study += m.study;
+      moodCounts[mood].ent += m.ent;
+
+      if(idx < recs.length - 1){
+        const next = recs[idx + 1];
+        const pair = `${r.balanceMode || r.mode}→${next.balanceMode || next.mode}`;
+        transitions[pair] = (transitions[pair] || 0) + 1;
+      }
+    });
+
+    const studyEntries = Object.entries(studyTagCounts).map(([name, o]) => ({ name, n:o.n, studyAvg:o.study / o.n, entAvg:o.ent / o.n }))
+      .sort((a,b) => b.n - a.n);
+    const entEntries = Object.entries(entTagCounts).map(([name, o]) => ({ name, n:o.n, studyAvg:o.study / o.n, entAvg:o.ent / o.n }))
+      .sort((a,b) => b.n - a.n);
+    const moodEntries = Object.entries(moodCounts).map(([name, o]) => ({ name, n:o.n, studyAvg:o.study / o.n, entAvg:o.ent / o.n }))
+      .sort((a,b) => b.n - a.n);
+    const transitionEntries = Object.entries(transitions).map(([k,v]) => ({k,v})).sort((a,b)=>b.v-a.v);
+    return { recs, studyEntries, entEntries, moodEntries, transitions: transitionEntries, withNotes };
+  }
+
+  function setTab(id){
+    els.tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    els.secs.forEach(s => s.classList.toggle('active', s.id === id));
+    if(id === 'recSec') renderRecord();
+    if(id === 'balSec') renderBalance();
+  }
+
+  function setMode(mode){
+    state.mode = mode;
+    [els.mEnt, els.mMid, els.mStu].forEach(b => b.classList.remove('active'));
+    [els.cEnt, els.cMid, els.cStu].forEach(b => b.classList.remove('active','ent','mid','stu'));
+    if(mode === 'ent'){ els.mEnt.classList.add('active'); els.cEnt.classList.add('active','ent'); }
+    if(mode === 'mid'){ els.mMid.classList.add('active'); els.cMid.classList.add('active','mid'); }
+    if(mode === 'stu'){ els.mStu.classList.add('active'); els.cStu.classList.add('active','stu'); }
+  }
+
+  function setMood(m){ state.mood = m; [...els.moods.children].forEach(b => b.classList.toggle('active', b.textContent.trim() === m)); }
+
+  function setStudyTags(list){
+    state.studyTags = list.slice();
+    [...els.studyTags.children].forEach(b => {
+      const on = state.studyTags.includes(b.textContent.trim());
+      b.classList.toggle('active', on);
+    });
+  }
+
+  function setEntTags(list){
+    state.entTags = list.slice();
+    [...els.entTags.children].forEach(b => {
+      const on = state.entTags.includes(b.textContent.trim());
+      b.classList.toggle('active', on);
+    });
+  }
+
+  function syncTimer(){
+    const s = timerNow('study'), e = timerNow('ent');
+    els.stuTime.textContent = fmt(s); els.entTime.textContent = fmt(e);
+    els.tpStu.classList.toggle('active-stu', state.timer.active === 'study');
+    els.tpEnt.classList.toggle('active-ent', state.timer.active === 'ent');
+    els.sumTime.textContent = `勉強 ${fmt(s)} / エンタメ ${fmt(e)}`;
+    els.sumMeta.textContent = `勉強タグ: ${showTags(state.studyTags)} / エンタメタグ: ${showTags(state.entTags)} / 気分: ${state.mood}`;
+  }
+
+  function timerNow(kind){
+    return (kind === 'study' ? state.timer.study : state.timer.ent) + (state.timer.active === kind ? Math.floor((Date.now() - state.timer.started)/1000) : 0);
+  }
+
+  function start(kind){
+    if(state.timer.active && state.timer.active !== kind) stop(state.timer.active);
+    state.timer.active = kind; state.timer.started = Date.now(); syncTimer();
+  }
+
+  function stop(kind){
+    if(state.timer.active !== kind) return;
+    const sec = Math.max(0, Math.floor((Date.now() - state.timer.started)/1000));
+    if(kind === 'study') state.timer.study += sec; else state.timer.ent += sec;
+    state.timer.active = null; state.timer.started = null; syncTimer();
+  }
+
+  function addManual(kind, inputId){
+    const raw = Number((document.getElementById(inputId)?.value || '').trim());
+    const minutes = Number.isFinite(raw) ? raw : 0;
+    if(minutes <= 0) return;
+    const sec = Math.round(minutes * 60);
+    if(kind === 'study') state.timer.study += sec; else state.timer.ent += sec;
+    syncTimer();
+  }
+
+  function openDate(k){
+    state.selected = k;
+    const r = state.records[k];
+    if(r){
+      state.mode = r.mode || 'mid';
+      state.mood = r.mood || '疲れた';
+      state.studyTags = Array.isArray(r.studyTags) ? r.studyTags.slice() : [];
+      state.entTags = Array.isArray(r.entTags) ? r.entTags.slice() : [];
+      state.timer.study = r.studySeconds || 0;
+      state.timer.ent = r.entSeconds || 0;
+      $('note').value = r.note || '';
+    } else {
+      state.mode = 'mid';
+      state.mood = '疲れた';
+      state.studyTags = [];
+      state.entTags = [];
+      state.timer.study = 0;
+      state.timer.ent = 0;
+      $('note').value = '';
+    }
+    state.timer.active = null; state.timer.started = null;
+    setMode(state.mode); setMood(state.mood); setStudyTags(state.studyTags); setEntTags(state.entTags); syncTimer(); renderCal();
+    $('recDate').textContent = k;
+  }
+
+  function saveCurrent(){
+    if(state.timer.active) stop(state.timer.active);
+    const balanceMode = balanceModeFromSeconds(state.timer.study, state.timer.ent, state.mode);
+    state.records[state.selected] = {
+      mode: state.mode,
+      balanceMode,
+      mood: state.mood,
+      studyTags: state.studyTags.slice(),
+      entTags: state.entTags.slice(),
+      note: $('note').value.trim(),
+      studySeconds: state.timer.study,
+      entSeconds: state.timer.ent,
+      updatedAt: new Date().toISOString()
+    };
+    save(); renderAll(); setTab('calSec');
+  }
+
+  function clearCurrent(){
+    delete state.records[state.selected];
+    state.mode = 'mid'; state.mood = '疲れた'; state.studyTags = []; state.entTags = [];
+    state.timer = { active:null, started:null, study:0, ent:0 };
+    $('note').value = ''; save(); renderAll();
+  }
+
+  function renderCal(){
+    const y = state.month.getFullYear(), m = state.month.getMonth();
+    const first = new Date(y, m, 1), start = first.getDay(), days = new Date(y, m + 1, 0).getDate();
+    $('monthLabel').textContent = `${y}年 ${MONTH[m]}`;
+    els.calendar.innerHTML = '';
+    DOW.forEach(d => { const c = document.createElement('div'); c.className = 'dow'; c.textContent = d; els.calendar.appendChild(c); });
+    for(let i = 0; i < start; i++){ const e = document.createElement('div'); e.className = 'day empty'; els.calendar.appendChild(e); }
+    for(let d = 1; d <= days; d++){
+      const dt = new Date(y, m, d), k = iso(dt), r = state.records[k];
+      const cell = document.createElement('div'); cell.className = 'day';
+      if(k === iso(today)) cell.classList.add('today');
+      if(k === state.selected) cell.classList.add('sel');
+      cell.innerHTML = `<div class="date">${d}</div>`;
+      const dot = document.createElement('div');
+      dot.className = 'dot ' + (r ? (r.balanceMode || r.mode || '') : '');
+      dot.innerHTML = '<div class="l"></div><div class="r"></div>';
+      cell.appendChild(dot);
+      cell.onclick = () => openDate(k);
+      els.calendar.appendChild(cell);
+    }
+    const monthKs = [...Array(days)].map((_,i)=>iso(new Date(y,m,i+1)));
+    const c = counts(monthKs);
+    const filled = Math.max(1, monthKs.length - c.none);
+    const ent = Math.round((Object.values(state.records).reduce((sum,r)=>sum + (r?.entSeconds || 0), 0) || 0) / 60);
+    const stu = Math.round((Object.values(state.records).reduce((sum,r)=>sum + (r?.studySeconds || 0), 0) || 0) / 60);
+    $('calHint').textContent = (stu - ent > 30) ? '少し勉強寄り。反動が来る前に遊びを少し入れると安定しやすい。'
+      : (ent - stu > 30) ? '少しエンタメ寄り。軽い学びを差し込むと整いやすい。'
+      : '中心に近い。ゆらぎは小さめで安定。';
+    $('todayChip').textContent = `${today.getMonth()+1}/${today.getDate()}`;
+  }
+
+  function renderRecord(){
+    $('recDate').textContent = state.selected;
+    setMode(state.mode); setMood(state.mood); setStudyTags(state.studyTags); setEntTags(state.entTags); syncTimer();
+  }
+
+  function renderBalance(){
+    const keys = rangeKeys(state.range);
+    let studySec = 0, entSec = 0, recordedDays = 0, balancedDays = 0, missing = 0;
+    keys.forEach(k => {
+      const r = state.records[k];
+      if(!r){ missing++; return; }
+      recordedDays++;
+      studySec += r.studySeconds || 0;
+      entSec += r.entSeconds || 0;
+      if((r.balanceMode || r.mode) === 'mid') balancedDays++;
+    });
+    const totalSec = studySec + entSec;
+    const studyPct = totalSec ? Math.round(studySec / totalSec * 100) : 0;
+    const entPct = totalSec ? Math.round(entSec / totalSec * 100) : 0;
+    const balancedPct = recordedDays ? Math.round(balancedDays / recordedDays * 100) : 0;
+    const nonePct = keys.length ? Math.round(missing / keys.length * 100) : 0;
+
+    $('rangeChip').textContent = state.range === 'all' ? '全体' : `${state.range}日間`;
+    $('rangeTitle').textContent = state.range === 'all' ? '全体' : `${state.range}日`;
+    $('needle').style.left = Math.max(0, Math.min(100, 50 + (studyPct - entPct) * 0.85)) + '%';
+    $('balText').textContent = totalSec === 0 ? 'まだ時間データが少ないです' : (Math.abs(studyPct - entPct) <= 10 ? 'ほどよく揺れていて、中心に近い' : (studyPct > entPct ? '少し勉強寄り。整えどき' : '少しエンタメ寄り。観測継続'));
+    $('entPct').textContent = entPct + '%';
+    $('midPct').textContent = balancedPct + '%';
+    $('stuPct').textContent = studyPct + '%';
+    $('entCnt').textContent = `${Math.round(entSec / 60)}分`;
+    $('midCnt').textContent = `${recordedDays}/${keys.length}日`;
+    $('stuCnt').textContent = `${Math.round(studySec / 60)}分`;
+    $('legEnt').textContent = entPct + '%';
+    $('legStu').textContent = studyPct + '%';
+    $('legNone').textContent = nonePct + '%';
+
+    const circ = 2 * Math.PI * 42;
+    $('ringEnt').style.strokeDasharray = `${circ * entPct / 100} ${circ}`;
+    $('ringStu').style.strokeDasharray = `${circ * studyPct / 100} ${circ}`;
+    $('ringStu').style.strokeDashoffset = `${-(circ * entPct / 100)}`;
+    $('analysis').textContent = `記録 ${recordedDays} 件 / 対象 ${keys.length} 日。${(studyPct > entPct) ? '勉強の継続が少し勝ち気味です。' : (entPct > studyPct ? 'エンタメの比率が少し高めです。' : 'ほぼ均衡です。')}`;
+
+    const a = buildAnalysis(keys);
+    const topStudy = a.studyEntries[0];
+    const topEnt = a.entEntries[0];
+    const topMood = a.moodEntries[0];
+    const topTransition = a.transitions[0];
+
+    $('analysisMemo').textContent = a.recs.length
+      ? `記録済み ${a.recs.length} 件。メモあり ${a.withNotes} 件。時間とタグが少しでも溜まると、どの勉強・どのエンタメが偏りやすいかが見えます。`
+      : '記録がまだ少ないので、まずは数件集めると見え方が一気に良くなります。';
+
+    const items = [];
+    if(topStudy) items.push({ title:'よく出る勉強タグ', body:`${topStudy.name} が ${topStudy.n} 件。平均 ${Math.round(topStudy.studyAvg)} 分の勉強が付いています。` });
+    if(topEnt) items.push({ title:'よく出るエンタメタグ', body:`${topEnt.name} が ${topEnt.n} 件。平均 ${Math.round(topEnt.entAvg)} 分のエンタメが付いています。` });
+    if(topMood) items.push({ title:'集中しやすい気分', body:`${topMood.name} の日は勉強 ${Math.round(topMood.studyAvg)} 分 / エンタメ ${Math.round(topMood.entAvg)} 分。` });
+    if(topTransition) items.push({ title:'並びの傾向', body:`直近の並びで多いのは ${topTransition.k} が ${topTransition.v} 回。` });
+    $('analysisList').innerHTML = items.slice(0,4).map(x => `<div class="analysis-item"><strong>${x.title}</strong>${x.body}</div>`).join('') || '<div class="analysis-item"><strong>まだ分析できるほど記録がありません</strong>数日分たまると、内容タグと気分の関係が見えてきます。</div>';
+
+    const forecastItems = [];
+    const streak = (() => {
+      let last = null, ent = 0, stu = 0, mid = 0;
+      for(const k of Object.keys(state.records).sort().reverse()){
+        const r = state.records[k];
+        if(!r) break;
+        const m = r.balanceMode || r.mode || 'mid';
+        if(last === null || m === last){
+          if(m === 'ent') ent++;
+          if(m === 'stu') stu++;
+          if(m === 'mid') mid++;
+          last = m;
+        } else break;
+      }
+      return { ent, stu, mid };
+    })();
+
+    if(streak.ent >= 2) forecastItems.push('エンタメが続いています。明日は軽い勉強を入れると、反動が小さくなりやすい。');
+    else if(streak.stu >= 2) forecastItems.push('勉強が続いています。短い休憩を入れると持続しやすい。');
+    else forecastItems.push('今は大きな片寄りは見えません。');
+    forecastItems.push(missing > keys.length / 2 ? '記録は少なめでも大丈夫。思い出した日に1件で十分です。' : '傾向が見えやすい状態です。');
+    forecastItems.push('見方のコツは、今日だけでなく昨日までの流れを見ること。');
+    $('forecast').innerHTML = forecastItems.slice(0,3).map(t => `<div class="fitem">${t}</div>`).join('');
+  }
+
+  function renderAll(){ renderCal(); renderRecord(); renderBalance(); syncTimer(); }
+
+  els.tabs.forEach(b => b.onclick = () => setTab(b.dataset.tab));
+  $('prevM').onclick = () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() - 1, 1); renderCal(); };
+  $('nextM').onclick = () => { state.month = new Date(state.month.getFullYear(), state.month.getMonth() + 1, 1); renderCal(); };
+  $('mEnt').onclick = () => setMode('ent');
+  $('mMid').onclick = () => setMode('mid');
+  $('mStu').onclick = () => setMode('stu');
+  $('cEnt').onclick = () => setMode('ent');
+  $('cMid').onclick = () => setMode('mid');
+  $('cStu').onclick = () => setMode('stu');
+
+  [...els.studyTags.children].forEach(b => b.onclick = () => {
+    setStudyTags(toggleTag(state.studyTags, b.textContent.trim(), 3));
+    syncTimer();
+  });
+
+  [...els.entTags.children].forEach(b => b.onclick = () => {
+    setEntTags(toggleTag(state.entTags, b.textContent.trim(), 3));
+    syncTimer();
+  });
+
+  [...els.moods.children].forEach(b => b.onclick = () => { setMood(b.textContent.trim()); syncTimer(); });
+  $('stuStart').onclick = () => start('study'); $('stuStop').onclick = () => stop('study');
+  $('entStart').onclick = () => start('ent'); $('entStop').onclick = () => stop('ent');
+  $('stuAdd').onclick = () => addManual('study', 'stuAddMin');
+  $('entAdd').onclick = () => addManual('ent', 'entAddMin');
+  $('save').onclick = saveCurrent; $('clear').onclick = clearCurrent;
+  $('r7').onclick = () => { state.range = 7; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.r7.classList.add('active'); renderBalance(); };
+  $('r30').onclick = () => { state.range = 30; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.r30.classList.add('active'); renderBalance(); };
+  $('rAll').onclick = () => { state.range = 'all'; [els.r7,els.r30,els.rAll].forEach(x=>x.classList.remove('active')); els.rAll.classList.add('active'); renderBalance(); };
+
+  openDate(state.selected); renderAll();
+  setInterval(() => { if(state.timer.active) syncTimer(); }, 1000);
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+})();
+</script>
+
+</body>
+</html>
